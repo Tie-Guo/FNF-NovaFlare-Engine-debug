@@ -108,17 +108,18 @@ class FreeplayState extends MusicBeatState {
     var camInfo:FlxCamera;
     var camSearch:FlxCamera;
     var camListen:FlxCamera;
+    var camBG:FlxCamera;
+    var camMove:FlxCamera;
     
 	override function create()
 	{
-	    persistentUpdate = true;
+	    persistentUpdate = persistentDraw = true;
 	    PlayState.isStoryMode = false;
 		WeekData.reloadWeekFiles(false);
 		
 		loadSong();
 		
-		camGame = new FlxCamera();
-		camGame.bgColor = 0x00;
+		camGame = initPsychCamera();
 		
 		camSong = new FlxCamera();
 		camSong.bgColor = 0x00;
@@ -135,13 +136,20 @@ class FreeplayState extends MusicBeatState {
 		camUI = new FlxCamera();
 		camUI.bgColor = 0x00;
 		
-		FlxG.cameras.add(camGame, false);
+		camBG = new FlxCamera(-FlxG.width);
+		camBG.bgColor = 0x00;
+		
+		camMove = new FlxCamera();
+		camMove.bgColor = 0x00;
+		
 		FlxG.cameras.add(camSong, false);
 		FlxG.cameras.add(camInfo, false);
 		//FlxG.cameras.add(camUI, false);
 		FlxG.cameras.add(camSearch, false);
 		FlxG.cameras.add(camListen, false);
 		FlxG.cameras.add(camUI, false);
+		FlxG.cameras.add(camBG, false);
+		FlxG.cameras.add(camMove, false);
 		    	
     	songsbg = new FlxSprite(700, -75).makeGraphic(550, 900, FlxColor.WHITE);
     	songsbg.camera = camGame;
@@ -321,6 +329,12 @@ class FreeplayState extends MusicBeatState {
     	options.antialiasing = ClientPrefs.data.antialiasing;
     	add(options);
     	
+    	var options = new FlxText(330, 520, 0, "Chart Editor", 28);
+    	options.setFormat(font, 28, FlxColor.WHITE, 'left', FlxTextBorderStyle.OUTLINE, FlxColor.TRANSPARENT);
+    	options.camera = camInfo;
+    	options.antialiasing = ClientPrefs.data.antialiasing;
+    	add(options);
+    	
     	for (i in [0, 3]) {
     		var back:FlxSprite = new FlxSprite().loadGraphic(Paths.image(filePath + 'overlaps' + i));
     		back.antialiasing = ClientPrefs.data.antialiasing;
@@ -379,28 +393,51 @@ class FreeplayState extends MusicBeatState {
     	searchButton.camera = camUI;
     	add(searchButton);
     	
-    	var objs:Array<FlxSprite> = [randomButton, musicButton, searchButton];
-    	for (i in 0...objs.length) {
-    		objs[i].scale.set(60/1500, 60/1500);
-    		objs[i].updateHitbox();
-    		objs[i].x = FlxG.width - i*90 - 90;
+    	for (i in [randomButton, musicButton, searchButton]) {
+    		i.scale.set(60/1500, 60/1500);
+    		i.updateHitbox();
     	}
+    	searchButton.setPosition(800, 0);
+    	musicButton.setPosition(20, 665);
+    	randomButton.setPosition(500, 665);
     	
-    	var optionsText = new FlxText(190, 8, 0, 'E to Search Song | SPACE to Listen Song | O to get a random Song');
-    	optionsText.setFormat(font, 25, FlxColor.WHITE, LEFT, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
+    	var optionsText = new FlxText(850, 8, 0, 'E to Search Song');
+    	optionsText.setFormat(font, 25, FlxColor.WHITE, 'left', FlxTextBorderStyle.OUTLINE, FlxColor.TRANSPARENT);
     	optionsText.camera = camUI;
     	add(optionsText);
     	optionsText.scale.x = 0.9;
     	
-    	var optionsText = new FlxText(5, FlxG.height - 45, 0, 'Mouse wheel/Arrow keys to change Song | All UI can Control By Mouse');
-    	optionsText.setFormat(font, 25, FlxColor.WHITE, LEFT, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
+    	var optionsText = new FlxText(70, 675, 0, 'SPACE to Listen Song');
+    	optionsText.setFormat(font, 25, FlxColor.WHITE, 'left', FlxTextBorderStyle.OUTLINE, FlxColor.TRANSPARENT);
     	optionsText.camera = camUI;
     	add(optionsText);
+    	optionsText.scale.x = 0.9;
+    	
+    	var optionsText = new FlxText(550, 675, 0, 'O to get a Random Song');
+    	optionsText.setFormat(font, 25, FlxColor.WHITE, 'left', FlxTextBorderStyle.OUTLINE, FlxColor.TRANSPARENT);
+    	optionsText.camera = camUI;
+    	add(optionsText);
+    	optionsText.scale.x = 0.9;
+    	
+    	var optionsText = new FlxText(200, 8, 0, 'shitfuckmdcnmfnf');
+    	optionsText.setFormat(font, 25, FlxColor.WHITE, 'left', FlxTextBorderStyle.OUTLINE, FlxColor.TRANSPARENT);
+    	optionsText.camera = camUI;
+    	add(optionsText);
+    	optionsText.scale.x = 0.9;
     	
     	makeSearchUI();
     	makeListenMenu();
     	
+    	var blackBG = new FlxSprite(0, 0).makeGraphic(1280, 720, FlxColor.BLACK);
+    	blackBG.antialiasing = ClientPrefs.data.antialiasing;
+    	blackBG.camera = camBG;
+    	add(blackBG);
+    	
     	changeSong(0);
+    	
+    	//addVirtualPad(LEFT_FULL, A_B_C_X_Y_Z);
+		super.create();
+    	
     }
     
     var startMouseY:Float;
@@ -409,8 +446,14 @@ class FreeplayState extends MusicBeatState {
     var canMove:Bool;
     public static var vocals:FlxSound = null;
     public static var instPlaying:Int = 0;
+    
     override function update(elapsed:Float)
-    {
+    {        
+        if (FlxG.sound.music.volume < 0.7)
+		{
+			FlxG.sound.music.volume += 0.5 * FlxG.elapsed;
+		}
+		
     	if (controls.UI_DOWN_P)
     		changeSong(1);
     	if (controls.UI_UP_P)
@@ -463,7 +506,10 @@ class FreeplayState extends MusicBeatState {
     	
     	camSong.scroll.x = FlxMath.lerp(-(curSelectedFloat) * 20 * 0.75, camSong.scroll.x, FlxMath.bound(1 - (elapsed * 9), 0, 1));
         camSong.scroll.y = FlxMath.lerp((curSelectedFloat) * 75 * 0.75, camSong.scroll.y, FlxMath.bound(1 - (elapsed * 9), 0, 1));
+        
+        super.update(elapsed);
     }
+    
     
     var listeningSongName:FlxText;
     var playingSongName:FlxText;
@@ -481,8 +527,14 @@ class FreeplayState extends MusicBeatState {
     var timeLeft:FlxSprite;
     var timeRight:FlxSprite;
     var changingTime:Bool = false;
+    
+    var songPlaybackRate:Float = 1;
+    var songPlaybackRateText:FlxText;
+    var rateLeft:FlxSprite;
+    var rateRight:FlxSprite;
+    var resetButton:FlxSprite;
     function makeListenMenu() {
-    	startMusic(false);
+    	//startMusic(false);
     	listeningSongName = new FlxText(50, 190, 500, songs[curSelected].songName);
     	listeningSongName.setFormat(font, 50, FlxColor.WHITE, CENTER);
     	listeningSongName.camera = camListen;
@@ -531,6 +583,31 @@ class FreeplayState extends MusicBeatState {
     	progressBar = new FlxSprite(225, 455).makeGraphic(1, 10, FlxColor.WHITE);
     	progressBar.camera = camListen;
     	add(progressBar);
+    	
+    	rateLeft = new FlxSprite(320, 530).makeGraphic(50, 60, FlxColor.WHITE);
+    	rateLeft.camera = camListen;
+    	rateLeft.alpha = 0.25;
+    	add(rateLeft);
+    	
+    	rateRight = new FlxSprite(370, 530).makeGraphic(50, 60, FlxColor.WHITE);
+    	rateRight.camera = camListen;
+    	rateRight.alpha = 0.25;
+    	add(rateRight);
+    	
+    	songPlaybackRateText = new FlxText(350, 540, 100, '1.0');
+    	songPlaybackRateText.setFormat(font, 30, FlxColor.WHITE, 'left');
+    	songPlaybackRateText.camera = camListen;
+    	add(songPlaybackRateText);
+    	
+    	var rateResetText = new FlxText(50, 540, 0, 'RESET');
+    	rateResetText.setFormat(font, 30, FlxColor.WHITE, 'left');
+    	rateResetText.camera = camListen;
+    	add(rateResetText);
+    	
+    	resetButton = new FlxSprite(40, 530).makeGraphic(135, 60, FlxColor.WHITE);
+    	resetButton.camera = camListen;
+    	resetButton.alpha = 0;
+    	add(resetButton);
     }
     
     function startMusic(play:Bool)
@@ -567,6 +644,7 @@ class FreeplayState extends MusicBeatState {
 			
 			playingSong = curSelected;
 			playingSongName.text = 'Playing: ' + (playingSong == -1 ? songs[curSelected].songName : songs[playingSong].songName);
+			setplaybackrate();
 		}
 	}
     
@@ -586,6 +664,12 @@ class FreeplayState extends MusicBeatState {
     			destroyFreeplayVocals();
     			FlxG.sound.music.stop();
     			playingSong = -1;
+    			new FlxTimer().start(3, function(tmr:FlxTimer) {
+    				if (playingSong == -1) {
+    					FlxG.sound.playMusic(Paths.music('freakyMenu'), 0);
+    					FlxG.sound.music.volume = 0.1;
+    				}
+    			});
     			return;
     		}
     		
@@ -595,6 +679,35 @@ class FreeplayState extends MusicBeatState {
     	
     	if (pauseButton.alpha > 0)
     		pauseButton.alpha -= elapsed;
+    	
+    	if (rateLeft.alpha > 0)
+    		rateLeft.alpha -= elapsed;
+    	
+    	if (rateRight.alpha > 0)
+    		rateRight.alpha -= elapsed;
+    		
+    	if (FlxG.mouse.justPressed && FlxG.mouse.overlaps(rateLeft)) {
+    		rateLeft.alpha = 0.75;
+    		if (songPlaybackRate > 0.25)
+    			songPlaybackRate -= 0.25;
+    		setplaybackrate();
+    	}
+    		
+    	if (FlxG.mouse.justPressed && FlxG.mouse.overlaps(rateRight)) {
+    		rateRight.alpha = 0.75;
+    		if (songPlaybackRate < 5)
+    			songPlaybackRate += 0.25;
+    		setplaybackrate();
+    	}
+    	
+    	if (resetButton.alpha > 0)
+    		resetButton.alpha -= elapsed;
+    	
+    	if (FlxG.mouse.justPressed && FlxG.mouse.overlaps(resetButton)) {
+    		resetButton.alpha = 0.75;
+    		songPlaybackRate = 1;
+    		setplaybackrate();
+    	}
     	
     	if (playingSong != -1) {
         	if (FlxG.mouse.overlaps(pauseButton) && FlxG.mouse.justPressed) {
@@ -618,7 +731,7 @@ class FreeplayState extends MusicBeatState {
         	if (FlxG.mouse.overlaps(timeLeft) && !pausedsong) {
     			if (FlxG.mouse.justPressed) {
     				FlxG.sound.music.pause();
-    				vocals.pause();
+    				if (vocals != null) vocals.pause();
     				changingTime = true;
     			}
     			
@@ -632,7 +745,7 @@ class FreeplayState extends MusicBeatState {
     		}else if (FlxG.mouse.overlaps(timeRight) && !pausedsong) {
     			if (FlxG.mouse.justPressed) {
     				FlxG.sound.music.pause();
-    				vocals.pause();
+    				if (vocals != null) vocals.pause();
     				changingTime = true;
     			}
     			
@@ -648,12 +761,11 @@ class FreeplayState extends MusicBeatState {
     		if (changingTime && FlxG.mouse.justReleased) {
     			changingTime = false;
     			FlxG.sound.music.play();
-    			vocals.play();
-    			vocals.time = FlxG.sound.music.time;
+    			if (vocals != null) vocals.pause();
     			timeLeft.alpha = 0;
     			timeRight.alpha = 0;
     		}
-    		
+
     		listeningSongTime.text = timeConverter(FlxG.sound.music.time) + '/' + timeConverter(maxTime);
     		progressBar.scale.x = FlxG.sound.music.time/FlxG.sound.music.length*300;
     		progressBar.updateHitbox();
@@ -662,6 +774,12 @@ class FreeplayState extends MusicBeatState {
     		timeLeft.alpha = 0;
     		timeRight.alpha = 0;
     	}
+	}
+	
+	function setplaybackrate() {
+		songPlaybackRateText.text = Std.string(songPlaybackRate) + 'x';
+		if (vocals != null) vocals.pitch = songPlaybackRate;
+		FlxG.sound.music.pitch = songPlaybackRate;
 	}
     
     public static function destroyFreeplayVocals() {
@@ -677,10 +795,11 @@ class FreeplayState extends MusicBeatState {
     }
     
     override function destroy() {
+        super.destroy();
     	destroyFreeplayVocals();
-    	FlxG.sound.music.stop();
+    	//FlxG.sound.music.stop();
     }
-    
+   
     function timeConverter(time:Float) {
 		var secondsTotal:Int = Math.floor(time / 1000);
 		return FlxStringUtil.formatTime(secondsTotal, false);
@@ -705,7 +824,7 @@ class FreeplayState extends MusicBeatState {
     	add(underbar);
     	
     	searchInput = new FlxInputText(60, 150, 450, '', 30, 0x00FFFFFF);
-		searchInput.focusGained = () -> FlxG.stage.window.textInputEnabled = true;
+		searchInput.focusGained = () -> FlxG.stage.window.textInputEnabled = true; 
 		searchInput.backgroundColor = FlxColor.TRANSPARENT;
 		searchInput.fieldBorderColor = FlxColor.TRANSPARENT;
 		searchInput.font = font;
@@ -802,15 +921,17 @@ class FreeplayState extends MusicBeatState {
     
     var selectedThing:String = 'Nothing';
     function checkButton(elapsed:Float) {
-    	if (FlxG.pixelPerfectOverlap(startButton, mousechecker, 25) || controls.ACCEPT) {
-    		selectedThing = 'start';
-    	} else if (FlxG.pixelPerfectOverlap(backButton, mousechecker, 25) || controls.BACK) {
-    		selectedThing = 'back';
-    	} else
-    		selectedThing = 'Nothing';
-    		
+    	if (FlxG.mouse.justPressed) {
+    		if (FlxG.pixelPerfectOverlap(startButton, mousechecker, 25)) {
+    			selectedThing = 'start';
+    		} else if (FlxG.pixelPerfectOverlap(backButton, mousechecker, 25)) {
+    			selectedThing = 'back';
+    		} else
+    			selectedThing = 'Nothing';
+    	}
+    	
     	if (FlxG.mouse.justReleased || controls.ACCEPT || controls.BACK) {
-    		if (selectedThing == 'start' || controls.ACCEPT) {
+    		if ((selectedThing == 'start' && FlxG.pixelPerfectOverlap(startButton, mousechecker, 25)) || controls.ACCEPT) {
     			var songLowercase:String = Paths.formatToSongPath(songs[curSelected].songName);
         		var poop:String = Highscore.formatSong(songLowercase, curDifficulty);
         		try
@@ -845,7 +966,7 @@ class FreeplayState extends MusicBeatState {
     			/*#if desktop
     			DiscordClient.loadModRPC();
     			#end*/
-    		} else if (selectedThing == 'back' || controls.BACK) {
+    		} else if ((selectedThing == 'back' && FlxG.pixelPerfectOverlap(backButton, mousechecker, 25)) || controls.BACK) {
     			if (searching) {closeSearchMenu(); backText.text = 'EXIT'; return;}
     			if (listening) {closeListenMenu(); backText.text = 'EXIT'; return;}
     			FlxG.mouse.visible = false;
@@ -856,7 +977,8 @@ class FreeplayState extends MusicBeatState {
     				bgColorChange.cancel();
     			}
     			destroyFreeplayVocals();
-    			if (playingSong == -1) FlxG.sound.playMusic(Paths.music('freakyMenu'), 0);
+    			FlxG.sound.playMusic(Paths.music('freakyMenu'), 0);
+    			FlxG.sound.music.volume = 0.1;
     			FlxG.sound.play(Paths.sound('cancelMenu'));
     			MusicBeatState.switchState(new MainMenuState());
     		}
@@ -941,18 +1063,20 @@ class FreeplayState extends MusicBeatState {
     	
     	if (FlxG.mouse.justReleased) {
     		holdOptions = false;
-
-    		if (optionsGroup[curHoldOptions].alpha >= 0.99) {
-    			switch(curHoldOptions) {
-    				case 0: //Options
-    					LoadingState.loadAndSwitchState(new OptionsState());
-    				case 2: // Gameplay Changer
-    					openSubState(new GameplayChangersSubstate());
-    				case 3: // Reset Score
-    					openSubState(new ResetScoreSubState(songs[curSelected].songName, curDifficulty, songs[curSelected].songCharacter));
-    				case 4: // idk
-    			}
-    		}
+		}
+		
+		if (optionsGroup[curHoldOptions].alpha >= 0.99) {
+			holdOptions = false;
+			switch(curHoldOptions) {
+				case 0: //Options
+					LoadingState.loadAndSwitchState(new OptionsState());
+				case 1: // Gameplay Changer
+					openSubState(new GameplayChangersSubstate());
+				case 2: // Reset Score
+					openSubState(new ResetScoreSubState(songs[curSelected].songName, curDifficulty, songs[curSelected].songCharacter));
+				case 3: // idk
+					LoadingState.loadAndSwitchState(new ChartingState());
+			}
     	}
     }
     
@@ -1068,30 +1192,30 @@ class FreeplayState extends MusicBeatState {
 	{
 		songs = [];
 		for (i in 0...WeekData.weeksList.length) {
-    		if(weekIsLocked(WeekData.weeksList[i])) continue;
-    
-    		var leWeek:WeekData = WeekData.weeksLoaded.get(WeekData.weeksList[i]);
-    		var leSongs:Array<String> = [];
-    		var leChars:Array<String> = [];
-    
-    		for (j in 0...leWeek.songs.length)
-    		{
-    			leSongs.push(leWeek.songs[j][0]);
-    			leChars.push(leWeek.songs[j][1]);
-    		}
-    
-    		WeekData.setDirectoryFromWeek(leWeek);
-    		for (song in leWeek.songs)
-    		{
-    			var colors:Array<Int> = song[2];
-    			if(colors == null || colors.length < 3)
-    			{
-    				colors = [146, 113, 253];
-    			}
-    			addSong(song[0], i, song[1], FlxColor.fromRGB(colors[0], colors[1], colors[2]));
-    		}
-       	}
-       	Mods.loadTopMod();
+			if(weekIsLocked(WeekData.weeksList[i])) continue;
+
+			var leWeek:WeekData = WeekData.weeksLoaded.get(WeekData.weeksList[i]);
+			var leSongs:Array<String> = [];
+			var leChars:Array<String> = [];
+
+			for (j in 0...leWeek.songs.length)
+			{
+				leSongs.push(leWeek.songs[j][0]);
+				leChars.push(leWeek.songs[j][1]);
+			}
+
+			WeekData.setDirectoryFromWeek(leWeek);
+			for (song in leWeek.songs)
+			{
+				var colors:Array<Int> = song[2];
+				if(colors == null || colors.length < 3)
+				{
+					colors = [146, 113, 253];
+				}
+				addSong(song[0], i, song[1], FlxColor.fromRGB(colors[0], colors[1], colors[2]));
+			}
+		}
+		Mods.loadTopMod();
 	}
 	
 	function addSongTxt()
